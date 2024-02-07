@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Droid Scanner</title>
+  <style>
+    /* Styles for neon pink shooting stars */
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Hide overflow to prevent horizontal scrollbar */
+    }
+    .shooting-star {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 2px;
+      background-color: #ff00ff; /* Neon pink */
+      animation: shooting 1.5s linear infinite;
+    }
+    .shooting-star::before,
+    .shooting-star::after {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 2px;
+      background-color: #ff00ff; /* Neon pink */
+      transform: rotate(45deg);
+    }
+    .shooting-star::before {
+      top: -8px;
+      left: 10px;
+    }
+    .shooting-star::after {
+      top: 6px;
+      left: -8px;
+    }
+    @keyframes shooting {
+      0% {
+        transform: translate(-50%, -50%) rotate(45deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(100vw, 100vh) rotate(45deg);
+        opacity: 0;
+      }
+    }
+    
+    /* Other styles */
+    h1, h2, h3 {
+      font-weight: bold;
+      color: #ff00ff; /* Magenta */
+      text-shadow: 2px 2px 4px #000;
+    }
+    button {
+      background-color: #ff00ff; /* Magenta */
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 2px 2px 4px #000;
+    }
+    button:hover {
+      background-color: #00ffff; /* Cyan */
+    }
+    input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      border: 2px solid #ff00ff; /* Magenta */
+      background-color: #000;
+      color: #fff;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    label {
+      cursor: pointer;
+      padding: 10px 20px;
+      background-color: #ff00ff; /* Magenta */
+      color: #000;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+      box-shadow: 2px 2px 4px #000;
+    }
+    label:hover {
+      background-color: #00ffff; /* Cyan */
+    }
+    #output {
+      margin-top: 20px;
+    }
+    #html-output {
+      padding: 20px;
+      background-color: #ff00ff; /* Magenta */
+      color: #000;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 2px 2px 4px #000;
+    }
+    .retro-image {
+      border: 4px solid #ff00ff; /* Magenta */
+      border-radius: 10px;
+      margin-top: 20px;
+      box-shadow: 2px 2px 4px #000;
+    }
+  </style>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    // Function to scan HTML for potential malware
+    function scanHTMLForMalware(html) {
+      // Perform scanning logic here and return true if malware is detected, false otherwise
+      // Example: Check for suspicious attributes in HTML tags
+      const suspiciousAttributes = ["onerror", "onload", "onmouseover"];
+      for (const attribute of suspiciousAttributes) {
+        if (html.includes(attribute)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    $(document).ready(function(){
+      // Function to get user's IP address
+      function getUserIPAddress() {
+        $.getJSON('https://api.ipify.org?format=json', function(data) {
+          $('#ip-address').val(data.ip);
+        });
+      }
+
+      // Automatically fetch user's IP address
+      getUserIPAddress();
+
+      // Event listener for file input change
+      $("#fileScanner").change(function(event) {
+        const file = event.target.files[0]; // Get the selected file
+        if (file) {
+          // Read the contents of the selected file
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            // e.target.result contains the data URL representing the image file
+            const imageDataUrl = e.target.result;
+            // Display the image, for example, by setting it as the source of an image element
+            const imgElement = document.createElement('img');
+            imgElement.src = imageDataUrl;
+            imgElement.classList.add('retro-image');
+            document.body.appendChild(imgElement);
+          };
+          // Read the file as a data URL
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Event listener for TCP port scanning
+      $("#scan-btn").click(function(){
+        var ipAddress = $("#ip-address").val().trim();
+        
+        // Clear previous results
+        $("#output").empty();
+
+        // Check for valid input
+        if (!ipAddress) {
+          $("#output").append("<p>Unable to determine IP address.</p>");
+          return;
+        }
+
+        // Display loading message
+        $("#output").append("<p>Scanning ports...</p>");
+
+        var completedRequests = 0;
+
+        // Start scanning ports from 0 to 1000
+        for (var portNumber = 0; portNumber <= 1000; portNumber++) {
+          $.ajax({
+            type: "GET",
+            url: "http://" + ipAddress + ":" + portNumber,
+            timeout: 2000,
+            async: true,
+            success: function() {
+              $("#output").append("<p>Port " + portNumber + " is open.</p>");
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              if (textStatus === "timeout") {
+                $("#output").append("<p>Timeout occurred while scanning port " + portNumber + ".</p>");
+              } else {
+                $("#output").append("<p>Error occurred while scanning port " + portNumber + ": " + errorThrown + "</p>");
+              }
+            },
+            complete: function() {
+              completedRequests++;
+              if (completedRequests === 1001) {
+                $("#output").append("<p>Port scan completed.</p>");
+              }
+            }
+          });
+        }
+      });
+
+      // Function to load HTML content with malware scanning
+      $("#load-html-btn").click(function() {
+        const htmlContent = "<html><head></head><body><script>alert('This is a malicious script!');</script><img src='image.jpg' onerror='maliciousFunction()'></body></html>";
+        if (scanHTMLForMalware(htmlContent)) {
+          $("#html-output").html("Malware detected! Content blocked.");
+        } else {
+          $("#html-output").html(htmlContent);
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Droid Scanner</h1>
+  
+  <h2>Image Scanner</h2>
+  <label for="fileScanner" class="btn">Upload Image</label>
+  <input type="file" accept="image/*" id="fileScanner" />
+
+  <h2>HTML Malware Scanner</h2>
+  <button id="load-html-btn">Load HTML Content</button>
+  <div id="html-output"></div>
+
+  <h2>TCP Port Scanner</h2>
+  <label for="ip-address">IP Address:</label>
+  <input type="text" id="ip-address" name="ip-address" readonly><br><br>
+  <button id="scan-btn">Scan Ports</button><br><br>
+  <div id="output"></div>
+
+  <!-- Neon pink shooting stars -->
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+  <div class="shooting-star"></div>
+</body>
+</html>
